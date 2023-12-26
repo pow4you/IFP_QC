@@ -3,12 +3,16 @@ from sympy import *
 import numpy as np
 from dwave_qbsolv import QBSolv
 
+# Initialize pretty printing for symbolic mathematics
 init_printing(use_unicode=True)
 encoding = 'utf-8-sig'
+
+# Define a constant value to be factorized (221)
 print('要分解的值为221:')
 
+# Define functions to handle different parts of the multiplication problem
 
-# 第m块的项目和
+# Calculate the product of elements in a block
 def prodfunc(m):
     prodf = 0
     for r in range(2, (cols[m].shape[0] - 2)):
@@ -17,7 +21,7 @@ def prodfunc(m):
     return prodf
 
 
-# 第m-1块给第m块的进位
+# Calculate the carry from the m-1 block to the m block
 def cinvalfunc(m):
     cinval = 0
     for r in range(cols[m].shape[1]):  # 第m块列数
@@ -25,7 +29,7 @@ def cinvalfunc(m):
     return cinval
 
 
-# 第m块给第m+1块的进位
+# Calculate the maximum carry from the m block to the m+1 block
 def max_carryfunc(m):
     max_carry = 0
     if m < (len(cols)-1):
@@ -34,7 +38,7 @@ def max_carryfunc(m):
     return max_carry
 
 
-# 第m块的目标值
+# Calculate the target value for the m block
 def targetvaluefunc(m):
     targetvalue = 0
     for r in range(cols[m].shape[1]):
@@ -42,7 +46,7 @@ def targetvaluefunc(m):
     return targetvalue
 
 
-# 3项转为2项的函数
+# Define a function to handle 3-to-2 term conversion
 def changefunc(bb, cc):
     tt = 0
     if p3*p1 == bb*cc:
@@ -52,14 +56,15 @@ def changefunc(bb, cc):
     return tt
 
 
-# 定义匹配函数
+# Define a function to find matches in an expression
 def findmatch(exprr, pattern):
     return [ee.match(pattern) for ee in exprr.find(pattern)]
 
 
-# 主函数
+
+# Main function
 if __name__ == '__main__':
-    # 对未知数定义为symbol对象
+    # Define symbolic variables
     p1, p2, p3, p4, p5, p6, q1, q2, q3, q4, q5, q6, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, = symbols(
         'p1, p2, p3, p4, p5, p6, q1, q2, q3, q4, q5, q6, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11')
     t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18 = symbols(
@@ -73,15 +78,17 @@ if __name__ == '__main__':
     p_q_list = [p3, q1, q2]
     c_list = [c1, c2, c3, c4]
     t_list = [t5, t6]
-    n = list(bin(221))
-    binary_n = n[2:]  # 输出二进制的n的数组形式
 
-    # 对n的二进制字符串转为整型
+    # Convert a decimal number to binary
+    n = list(bin(221))
+    binary_n = n[2:]  # Extract the binary representation of n
+
+    # Convert binary string to a list of integers
     target_values = []
     for i in range(0, len(binary_n)):
-        target_values = np.append(target_values, int(binary_n[i]))  # 字符串转为整型
+        target_values = np.append(target_values, int(binary_n[i]))  # Convert each character to an integer
 
-    #  对乘法表每一行进行输入，这里还可以改进
+    # Define product terms for multiplication table
     p = [0, 0, 0, 1, p3, p2, p1, 1]
     q = [0, 0, 0, 0, 1, q2, q1, 1]
     product_terms1 = [0, 0, 0, 1, p3, p2, p1, 1]
@@ -90,29 +97,29 @@ if __name__ == '__main__':
     product_terms4 = [1, p3, p2, p1, 1, 0, 0, 0]
     carries = [c4, c3, c2, c1, 0, 0, 0, 0]
 
-    # 建立乘法表数组
+    # Create a multiplication table as a numpy array
     A1 = np.vstack((p, q, product_terms1, product_terms2, product_terms3, product_terms4, carries, target_values))
     print(A1)
 
-    # 对整个乘法表进行分块
-    left0, cols0 = np.split(A1, [7], axis=1)  # 分出第一块
-    left1, cols1 = np.split(left0, [4], axis=1)  # 分出第二块
-    cols3, cols2 = np.split(left1, [2], axis=1)   # 分出第三块
+    # Split the multiplication table into blocks
+    left0, cols0 = np.split(A1, [7], axis=1)  # Split the first block
+    left1, cols1 = np.split(left0, [4], axis=1)  # Split the second block
+    cols3, cols2 = np.split(left1, [2], axis=1)   # Split the third block
     cols = [cols0, cols1, cols2, cols3]
 
-    # 建立消耗函数
+    # Define a cost function
     f1 = 0
     for i in range(1, len(cols)):
         f1 = f1 + (prodfunc(i) + cinvalfunc(i) - max_carryfunc(i) - targetvaluefunc(i)) ** 2
 
-    # x的平方等于本身
-    print('最开始的函数：')
+    # Simplify the function by replacing x^2 with x
+    print('Original function:')
     f1 = expand(f1)
     for i in range(0, len(x)):
         f1 = f1.replace(x[i] ** 2, x[i])
     print(f1)
 
-    # 根据新算法减去某一些比特
+    # Modify the function based on a new algorithm
     f1 = f1.subs(p1, (1-q1))
     f1 = f1.subs(p2, (1-q2))
     f1 = expand(f1)
@@ -121,7 +128,7 @@ if __name__ == '__main__':
         f1 = f1.replace(x[i] ** 3, x[i])
     print(f1)
 
-    # 定义匹配模式对象
+    # Define Wild variables for pattern matching
     a = Wild("a", exclude=[Pow])
     b = Wild("b", exclude=[1, Pow])
     c = Wild("c", exclude=[1, Pow])
@@ -129,11 +136,11 @@ if __name__ == '__main__':
     e = Wild("e", exclude=[1, Pow])
     y = Wild("y", exclude=[1, Pow])
 
-    #  先单独消掉四次项
-    change_1 = findmatch(f1, a * b * c * d * e)  # 将3次和4次项提取出来放入到dict中，包括a等于1的情况
+    # First, eliminate the terms with a degree of four
+    change_1 = findmatch(f1, a * b * c * d * e)  # Extract 3rd and 4th-degree terms, including the case when 'a' is 1
     ff = 0
     for i in range(len(change_1)):
-        if change_1[i][b] in p_list:  # 判断是否为四次项
+        if change_1[i][b] in p_list:  # Check if it's a 4th-degree term
             f1 = f1 - change_1[i][a] * change_1[i][b] * change_1[i][c] * change_1[i][d] * change_1[i][e]
             if change_1[i][a] > 0:
                 ff = ff + change_1[i][a]*(changefunc(change_1[i][b], change_1[i][d])*change_1[i][c]*change_1[i][e]+2*(change_1[i][b]*
@@ -144,52 +151,53 @@ if __name__ == '__main__':
                           change_1[i][d] - 2 *change_1[i][b] * changefunc(change_1[i][b], change_1[i][d]) - 2 *
                                                             change_1[i][d] * changefunc(change_1[i][b], change_1[i][d]) + 3 *changefunc(change_1[i][b], change_1[i][d])))
     f1 = f1 + ff
-    # 到这里的时候已经把四项全部转成3项了
-    #  将3项转化为2项
-    # 消掉三项为cpq的
+    # At this point, all 4th-degree terms have been converted to 3rd-degree terms
+    # Now, convert 3rd-degree terms to 2nd-degree terms
+
+    # Eliminate terms like cpq
     change_2 = findmatch(f1, a * b * c * d)
     ff = 0
     for i in range(len(change_2)):
-        if change_2[i][b] in c_list:  # 判断是否为三次项
+        if change_2[i][b] in c_list:  # Check if it's a 3rd-degree term
             f1 = f1 - change_2[i][a] * change_2[i][b] * change_2[i][c] * change_2[i][d]
-            if change_2[i][a] > 0:  # 判断三次项前面常数正负
+            if change_2[i][a] > 0:  
                 ff = ff + change_2[i][a] * (changefunc(change_2[i][c], change_2[i][d]) * change_2[i][b] + 2 * (
                         change_2[i][c] * change_2[i][d] - 2 * change_2[i][c] * changefunc(change_2[i][c],
                                                                                           change_2[i][d]) -
                         2 * change_2[i][d] * changefunc(change_2[i][c], change_2[i][d]) + 3 * changefunc(
                          change_2[i][c], change_2[i][d])))
-            elif change_2[i][a] < 0:  # 判断三次项前面常数正负
+            elif change_2[i][a] < 0:  
                 ff = ff + change_2[i][a] * (changefunc(change_2[i][c], change_2[i][d]) * change_2[i][b] - 2 * (
                         change_2[i][c] * change_2[i][d] - 2 * change_2[i][c] * changefunc(change_2[i][c],
                                                                                           change_2[i][d]) -
                         2 * change_2[i][d] * changefunc(change_2[i][c], change_2[i][d]) + 3 * changefunc(
                          change_2[i][c], change_2[i][d])))
 
-    #  消掉3项为ppq,或者pqq的
+    # Eliminate terms like ppq or pqq
     for i in range(len(change_2)):
         if change_2[i][b] in p_q_list and change_2[i][d] in q_list:
             f1 = f1 - change_2[i][a] * change_2[i][b] * change_2[i][c] * change_2[i][d]
-            if change_2[i][c] in p_list:  # 判断如果第二个未知数是p，那么b和d结合
-                if change_2[i][a] > 0:
+            if change_2[i][c] in p_list:  # If the second unknown is 'p', combine 'b' and 'd'
+                if change_2[i][a] > 0: # Check if the coefficient in front of the cubic term is positive
                     ff = ff + change_2[i][a] * (changefunc(change_2[i][b], change_2[i][d]) * change_2[i][c] + 2 * (
                             change_2[i][b] * change_2[i][d] - 2 * change_2[i][b] * changefunc(change_2[i][b],
                                                                                               change_2[i][d]) -
                             2 * change_2[i][d] * changefunc(change_2[i][b], change_2[i][d]) + 3 * changefunc(
                              change_2[i][b], change_2[i][d])))
-                elif change_2[i][a] < 0:
+                elif change_2[i][a] < 0: # Check if the coefficient in front of the cubic term is negative
                     ff = ff + change_2[i][a] * (changefunc(change_2[i][b], change_2[i][d]) * change_2[i][c] - 2 * (
                             change_2[i][b] * change_2[i][d] - 2 * change_2[i][b] * changefunc(change_2[i][b],
                                                                                               change_2[i][d]) -
                             2 * change_2[i][d] * changefunc(change_2[i][b], change_2[i][d]) + 3 * changefunc(
                              change_2[i][b], change_2[i][d])))
-            if change_2[i][c] in q_list:  # 判断如果第二个未知数是p去，那么b和结合
-                if change_2[i][a] > 0:
+            if change_2[i][c] in q_list:  # If the second unknown is 'p', combine 'b' and 'd'
+                if change_2[i][a] > 0: # Check if the coefficient in front of the cubic term is positive
                     ff = ff + change_2[i][a] * (changefunc(change_2[i][b], change_2[i][c]) * change_2[i][d] + 2 * (
                             change_2[i][b] * change_2[i][c] - 2 * change_2[i][b] * changefunc(change_2[i][b],
                                                                                               change_2[i][c]) -
                             2 * change_2[i][c] * changefunc(change_2[i][b], change_2[i][c]) + 3 * changefunc(
                              change_2[i][b], change_2[i][c])))
-                elif change_2[i][a] < 0:
+                elif change_2[i][a] < 0: # Check if the coefficient in front of the cubic term is negative
                     ff = ff + change_2[i][a] * (changefunc(change_2[i][b], change_2[i][d]) * change_2[i][c] - 2 * (
                             change_2[i][b] * change_2[i][c] - 2 * change_2[i][b] * changefunc(change_2[i][b],
                                                                                               change_2[i][c]) -
@@ -213,11 +221,11 @@ if __name__ == '__main__':
                         2 * change_2[i][c] * changefunc(change_2[i][b], change_2[i][c]) + 3 * changefunc(
                          change_2[i][b], change_2[i][c])))
 
-    f1 = f1 + ff    # 转换后加上二次项
-    print('转换成二次项后的函数：')
-    print(f1)   # 到这里为止所有已经转成二次项
+    f1 = f1 + ff    # Add the resulting quadratic terms
+    print('Function after converting to quadratic terms:')
+    print(f1)   # Up to this point, everything has been converted to quadratic terms
 
-    # 转化为粒子自旋形式
+    # Convert to particle spin form
     s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12 = symbols(
         's1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12')  # 定义二进制未知变量
     s13, s14, s15, s16, s17, s18, s19, s20, s21, s22, s23, s24 = symbols(
@@ -236,7 +244,7 @@ if __name__ == '__main__':
     print("ISing 模型多项式：")
     print(f1)
 
-    #  提取h 和 J
+    # Extract h and J
     dic = findmatch(f1, a * b * c)
     h_list = np.zeros(len(x))
     J_list = np.zeros((len(x), len(x)))
@@ -257,64 +265,69 @@ if __name__ == '__main__':
     for i in range(len(x)):
         for j in range(i + 1, len(x)):
             J.setdefault((i, j), J_list[i][j])
-    print('提取出h:')
+    print('Extracted h:')
     print(h)
-    print('提取出J：')
-    print(J)
+    print('Extracted J:')
+    print(J) 
 
-    # 调用qbsolve第三方库
-    count_all_first = 1  # 输入调用第三方库的次数
+    # Call the QBSolv third-party library
+    count_all_first = 1  # Number of times the third-party library is called
     correct_count = 0
     count = 0
-    q_truth_1 = 13  # 输入质因子
-    q_truth_2 = 17  # 输入质因子
+    q_truth_1 = 13  # Input prime factor
+    q_truth_2 = 17  # Input prime factor
     for i in range(count_all_first):
         response = QBSolv().sample_ising(h, J)
-        print("粒子自旋态：")
+        
+        print("Particle Spin State:")
         spin = list(response.samples())
         print(spin)
-        print("粒子自旋态对应能量值：")
+        
+        print("Energy Values Corresponding to Particle Spin States:")
         energy = list(response.data_vectors['energy'])
         print(energy)
 
-        # 反推回去q的值
+        # Reverse-engineer the value of q
         q = 2 ** (len(q_list) + 1) + 1
         for j in range(len(q_list)):
             q_list[j] = (1 - spin[0][len(p_list) + j]) / 2
         for j in range(len(q_list)):
             q = q + q_list[j] * 2 ** (j + 1)
-        print('q的值为')
+        
+        print('Value of q:')
         print(q)
+        
         if q == q_truth_1 or q == q_truth_2:
             correct_count = correct_count + 1
         else:
-            # 如果能量值和第一个一样小，那么
+            # If the energy value is smaller than the first one, then# If the energy value is smaller than the first one, then
             for k in range(1, len(energy)):
                 if energy[k] <= energy[0]:
                     count = count + 1
                     q = 2 ** (len(q_list) + 1) + 1
-                    for j in range(len(q_list)):  # 找到对应的q值
+                    for j in range(len(q_list)):  # Find the corresponding q value
                         q_list[j] = (1 - spin[k][len(p_list) + j]) / 2
                     for j in range(len(q_list)):
                         q = q + q_list[j] * 2 ** (j + 1)
                     if q == q_truth_1 or q == q_truth_2:
                         correct_count = correct_count + 1
-                    print('或者为', end='')
+                    print('Alternatively, it could be', end='')
                     print(q)
+                    
     count_all = count_all_first + count
-    print('h的最小值为：', end='')
+    print('Minimum value of h:', end='')
     print(min(h.values()), end='')
-    print(', 最大值为：', end='')
+    print(', Maximum value of h:', end='')
     print(max(h.values()))
-    print('J的最小值为：', end='')
+    print('Minimum value of J:', end='')
     print(min(J.values()), end='')
-    print(', 最大值为：', end='')
+    print(', Maximum value of J:', end='')
     print(max(J.values()))
-    print('总的最低能量获得次数：', end='')
+    print('Total times lowest energy was obtained:', end='')
     print(count_all)
-    print('正确的次数为：', end='')
+    print('Number of correct times:', end='')
     print(correct_count)
-    print('正确率为：', end='')
+    print('Accuracy:', end='')
     print(correct_count / count_all)
-    print('所用的比特数为：', end='')
+    print('Number of bits used:', end='')
     print(len(s))
