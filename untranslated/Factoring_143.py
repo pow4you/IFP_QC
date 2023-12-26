@@ -1,7 +1,12 @@
 from numpy import *
 from sympy import *
 import numpy as np
-from dwave_qbsolv import QBSolv
+
+from dwave.samplers import SimulatedAnnealingSampler, SteepestDescentSolver, TabuSampler # classical free optimizer (installed locally on your computer)
+from dwave.system import DWaveSampler, EmbeddingComposite # commercial quantum optimizer (in the cloud)
+
+from dimod import BQM # binary quadratic model object
+
 init_printing(use_unicode=True)
 encoding = 'utf-8-sig'
 print('要分解的值为143:')
@@ -213,12 +218,14 @@ if __name__ == '__main__':
     q_truth_1 = 11  # 输入质因子
     q_truth_2 = 13  # 输入质因子
     for i in range(count_all_first):
-        response = QBSolv().sample_ising(h, J)
+        bqm = BQM.from_ising(h, J)
+        optimizer = SimulatedAnnealingSampler()
+        sampleset = optimizer.sample(bqm=bqm, num_reads=10)
         print("粒子自旋态：")
-        spin = list(response.samples())
+        spin = list(sampleset.samples())
         print(spin)
         print("粒子自旋态对应能量值：")
-        energy = list(response.data_vectors['energy'])
+        energy = list(sampleset.data_vectors['energy'])
         print(energy)
 
         # 反推回去q的值

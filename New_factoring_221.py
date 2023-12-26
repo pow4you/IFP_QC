@@ -1,14 +1,18 @@
 from numpy import *
 from sympy import *
 import numpy as np
-from dwave_qbsolv import QBSolv
+
+from dwave.samplers import SimulatedAnnealingSampler, SteepestDescentSolver, TabuSampler # classical free optimizer (installed locally on your computer)
+from dwave.system import DWaveSampler, EmbeddingComposite # commercial quantum optimizer (in the cloud)
+
+from dimod import BQM # binary quadratic model object
 
 # Initialize pretty printing for symbolic mathematics
 init_printing(use_unicode=True)
 encoding = 'utf-8-sig'
 
 # Define a constant value to be factorized (221)
-print('要分解的值为221:')
+print('Factorizing the number 221:')
 
 # Define functions to handle different parts of the multiplication problem
 
@@ -269,6 +273,7 @@ if __name__ == '__main__':
     print(h)
     print('Extracted J:')
     print(J) 
+    print()
 
     # Call the QBSolv third-party library
     count_all_first = 1  # Number of times the third-party library is called
@@ -277,14 +282,17 @@ if __name__ == '__main__':
     q_truth_1 = 13  # Input prime factor
     q_truth_2 = 17  # Input prime factor
     for i in range(count_all_first):
-        response = QBSolv().sample_ising(h, J)
+    
+        bqm = BQM.from_ising(h, J)
+        optimizer = SimulatedAnnealingSampler()
+        sampleset = optimizer.sample(bqm=bqm, num_reads=1000)
         
         print("Particle Spin State:")
-        spin = list(response.samples())
+        spin = list(sampleset.samples())
         print(spin)
         
         print("Energy Values Corresponding to Particle Spin States:")
-        energy = list(response.data_vectors['energy'])
+        energy = list(sampleset.data_vectors['energy'])
         print(energy)
 
         # Reverse-engineer the value of q
@@ -311,23 +319,23 @@ if __name__ == '__main__':
                         q = q + q_list[j] * 2 ** (j + 1)
                     if q == q_truth_1 or q == q_truth_2:
                         correct_count = correct_count + 1
-                    print('Alternatively, it could be', end='')
+                    print('Alternatively, it could be: ', end='')
                     print(q)
                     
     count_all = count_all_first + count
-    print('Minimum value of h:', end='')
+    print('Minimum value of h: ', end='')
     print(min(h.values()), end='')
-    print(', Maximum value of h:', end='')
+    print(', Maximum value of h: ', end='')
     print(max(h.values()))
-    print('Minimum value of J:', end='')
+    print('Minimum value of J: ', end='')
     print(min(J.values()), end='')
-    print(', Maximum value of J:', end='')
+    print(', Maximum value of J: ', end='')
     print(max(J.values()))
-    print('Total times lowest energy was obtained:', end='')
+    print('Total times lowest energy was obtained: ', end='')
     print(count_all)
-    print('Number of correct times:', end='')
+    print('Number of correct times: ', end='')
     print(correct_count)
-    print('Accuracy:', end='')
+    print('Accuracy: ', end='')
     print(correct_count / count_all)
-    print('Number of bits used:', end='')
+    print('Number of bits used: ', end='')
     print(len(s))
